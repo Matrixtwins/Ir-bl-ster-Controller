@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="nl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,138 +8,126 @@
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 20px;
-            background-color: #f4f4f9;
-            text-align: center;
-        }
-        button {
-            background-color: #4CAF50;
-            color: white;
-            padding: 15px 32px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 16px;
-            margin: 4px 2px;
-            cursor: pointer;
-            border: none;
-            border-radius: 8px;
-        }
-        #status {
-            margin-top: 20px;
-            font-size: 18px;
+            padding: 0;
+            background-color: #f5f5f5;
             color: #333;
         }
+
+        header {
+            background-color: #28a745;
+            color: white;
+            text-align: center;
+            padding: 10px;
+        }
+
         .banner {
             font-family: monospace;
-            background-color: #4CAF50;
-            color: white;
+            font-size: 16px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            margin: 20px;
+        }
+
+        .content {
             padding: 20px;
             text-align: center;
-            white-space: pre;
-            font-size: 16px;
-            margin-bottom: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
         }
+
+        .btn {
+            background-color: #28a745;
+            color: white;
+            padding: 15px 32px;
+            font-size: 16px;
+            margin: 10px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+        }
+
+        .btn:hover {
+            background-color: #218838;
+        }
+
+        #status {
+            font-size: 18px;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+
     </style>
 </head>
 <body>
-    <!-- Green Banner -->
-    <div class="banner">
-        888b     d888          888            d8b          888                  d8b                    <br>
-        8888b   d8888          888            Y8P          888                  Y8P                    <br>
-        88888b.d88888          888                         888                                         <br>
-        888Y88888P888  8888b.  888888 888d888 888 888  888 888888 888  888  888 888 88888b.  .d8888b  <br>
-        888 Y888P 888     "88b 888    888P"   888 `Y8bd8P' 888    888  888  888 888 888 "88b 88K      <br>
-        888  Y8P  888 .d888888 888    888     888   X88K   888    888  888  888 888 888  888 "Y8888b. <br>
-        888   "   888 888  888 Y88b.  888     888 .d8""8b. Y88b.  Y88b 888 d88P 888 888  888      X88 <br>
-        888       888 "Y888888  "Y888 888     888 888  888  "Y888  "Y8888888P"  888 888  888  88888P'  <br>
-    </div>
 
+<header>
     <h1>IR Blaster Controller</h1>
-    <p>Verbind met je IR-blaster en stuur signalen naar je TV's!</p>
+</header>
 
-    <button id="power-toggle">Toggle Power for All TVs</button>
-    <p id="status">Status: Niet verbonden.</p>
+<div class="banner">
+    oooo     oooo            o8              o88<br>
+    8888o   888   ooooooo o888oo oo oooooo  oooo  oooo   oooo <br>
+    88 888o8 88   ooooo888 888    888    888 888    888o888   <br>
+    88  888  88 888    888 888    888        888    o88 88o  <br>
+    o88o  8  o88o 88ooo88 8o 888o o888o      o888o o88o   o88o <br>
+</div>
 
-    <script>
-        let connected = false;
-        let device = null;
+<div class="content">
+    <button id="connectBtn" class="btn">Connect Bluetooth Device</button>
+    <button id="sendSignalBtn" class="btn" disabled>Start Broadcasting</button>
+    <p id="status">Status: Waiting for connection...</p>
+</div>
 
-        // Functie die de knop voor het verzenden van signalen aanstuurt
-        document.getElementById('power-toggle').addEventListener('click', async function() {
-            if (connected) {
-                console.log("Sending power signal to all TVs...");
-                broadcast_all();
-            } else {
-                console.log("Bluetooth device not connected.");
-            }
-        });
+<script>
+    const connectBtn = document.getElementById('connectBtn');
+    const sendSignalBtn = document.getElementById('sendSignalBtn');
+    const status = document.getElementById('status');
+    let bluetoothDevice = null;
 
-        // Functie om een Bluetooth-apparaat te verbinden
-        async function connectBluetooth() {
-            try {
-                console.log("Requesting Bluetooth device...");
-                device = await navigator.bluetooth.requestDevice({
-                    acceptAllDevices: true,
-                    optionalServices: ['battery_service']
-                });
+    // Function to connect to a Bluetooth device
+    async function connectBluetooth() {
+        try {
+            // Request Bluetooth device
+            bluetoothDevice = await navigator.bluetooth.requestDevice({
+                filters: [{ services: ['ir-blaster-service'] }] // Change this to match your IR device
+            });
 
-                device.addEventListener('gattserverconnected', onConnected);
-                device.addEventListener('gattserverdisconnected', onDisconnected);
+            status.textContent = `Connected to ${bluetoothDevice.name}`;
+            sendSignalBtn.disabled = false; // Enable the "Start Broadcasting" button
 
-                document.getElementById('status').textContent = "Status: Verbonden met " + device.name;
-                connected = true;
-            } catch (error) {
-                console.log("Error connecting to device: ", error);
-                document.getElementById('status').textContent = "Status: Fout bij verbinden.";
-            }
+            bluetoothDevice.addEventListener('gattserverdisconnected', onDisconnected);
+        } catch (error) {
+            status.textContent = `Connection failed: ${error}`;
+        }
+    }
+
+    // Handle device disconnection
+    function onDisconnected() {
+        status.textContent = "Device disconnected.";
+        sendSignalBtn.disabled = true; // Disable the button
+    }
+
+    // Function to send an IR signal
+    async function sendIrSignal() {
+        if (!bluetoothDevice) {
+            status.textContent = "No Bluetooth device connected.";
+            return;
         }
 
-        // Functie wanneer de Bluetooth is verbonden
-        function onConnected(event) {
-            console.log("Connected to device");
+        try {
+            // You can send a command to the IR device using Bluetooth GATT services here
+            // Simulate sending a signal for demonstration purposes
+            console.log("Sending IR signal...");
+
+            status.textContent = "IR signal sent!";
+        } catch (error) {
+            status.textContent = `Error sending signal: ${error}`;
         }
+    }
 
-        // Functie wanneer de Bluetooth verbinding wordt verbroken
-        function onDisconnected(event) {
-            console.log("Disconnected from device");
-            connected = false;
-            document.getElementById('status').textContent = "Status: Verbinding verbroken.";
-        }
+    // Event Listeners
+    connectBtn.addEventListener('click', connectBluetooth);
+    sendSignalBtn.addEventListener('click', sendIrSignal);
 
-        // Functie die het IR-signaal naar alle TV's verzendt
-        function broadcast_all() {
-            const tvBrands = {
-                samsung: { frequency: 38000, code: 'E0E040BF' },
-                sony: { frequency: 40000, code: 'A90' },
-                lg: { frequency: 38000, code: '20DF10EF' },
-                panasonic: { frequency: 36000, code: '4004' },
-                sharp: { frequency: 38000, code: '5EA158A7' },
-            };
+</script>
 
-            for (let brand in tvBrands) {
-                let tv = tvBrands[brand];
-                send_ir_signal(tv.frequency, tv.code);
-            }
-        }
-
-        // Functie om een IR-signaal te verzenden via Bluetooth
-        function send_ir_signal(frequency, code) {
-            // Hier zou de Bluetooth-communicatiecode komen om het IR-signaal te verzenden
-            console.log(`Sending signal for TV brand: ${brand} with frequency ${frequency}Hz and code ${code}`);
-            // Voeg hier de Bluetooth-communicatie toe om het signaal daadwerkelijk te verzenden
-        }
-
-        // De pagina laadt automatisch en probeert verbinding te maken met een Bluetooth-apparaat
-        window.onload = () => {
-            if (navigator.bluetooth) {
-                connectBluetooth();
-            } else {
-                console.log("Bluetooth API not supported.");
-            }
-        };
-    </script>
 </body>
 </html>
