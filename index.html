@@ -7,112 +7,139 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            text-align: center;
             margin: 0;
             padding: 20px;
-            background-color: #f4f4f4;
-        }
-        h1 {
-            color: #333;
+            background-color: #f4f4f9;
+            text-align: center;
         }
         button {
-            padding: 10px 20px;
-            font-size: 18px;
-            margin: 10px;
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
             cursor: pointer;
             border: none;
-            border-radius: 5px;
-            background-color: #007BFF;
+            border-radius: 8px;
+        }
+        #status {
+            margin-top: 20px;
+            font-size: 18px;
+            color: #333;
+        }
+        .banner {
+            font-family: monospace;
+            background-color: #4CAF50;
             color: white;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        .hidden {
-            display: none;
+            padding: 20px;
+            text-align: center;
+            white-space: pre;
+            font-size: 16px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
         }
     </style>
 </head>
 <body>
+    <!-- Green Banner -->
+    <div class="banner">
+        888b     d888          888            d8b          888                  d8b                    <br>
+        8888b   d8888          888            Y8P          888                  Y8P                    <br>
+        88888b.d88888          888                         888                                         <br>
+        888Y88888P888  8888b.  888888 888d888 888 888  888 888888 888  888  888 888 88888b.  .d8888b  <br>
+        888 Y888P 888     "88b 888    888P"   888 `Y8bd8P' 888    888  888  888 888 888 "88b 88K      <br>
+        888  Y8P  888 .d888888 888    888     888   X88K   888    888  888  888 888 888  888 "Y8888b. <br>
+        888   "   888 888  888 Y88b.  888     888 .d8""8b. Y88b.  Y88b 888 d88P 888 888  888      X88 <br>
+        888       888 "Y888888  "Y888 888     888 888  888  "Y888  "Y8888888P"  888 888  888  88888P'  <br>
+    </div>
+
     <h1>IR Blaster Controller</h1>
-    <div id="accessDiv">
-        <p>Voer de toegangscode in om verder te gaan:</p>
-        <input type="password" id="accessCode" placeholder="Toegangscode">
-        <button onclick="checkAccessCode()">Verzenden</button>
-    </div>
+    <p>Verbind met je IR-blaster en stuur signalen naar je TV's!</p>
 
-    <div id="app" class="hidden">
-        <h2>Verbinden met je IR Blaster</h2>
-        <button id="connectButton">Verbinden</button>
-
-        <div id="controlPanel" class="hidden">
-            <h2>Stuur IR Signalen</h2>
-            <button onclick="sendIRSignal('samsung')">Samsung</button>
-            <button onclick="sendIRSignal('sony')">Sony</button>
-            <button onclick="sendIRSignal('lg')">LG</button>
-            <button onclick="sendIRSignal('panasonic')">Panasonic</button>
-            <button onclick="sendIRSignal('sharp')">Sharp</button>
-        </div>
-    </div>
+    <button id="power-toggle">Toggle Power for All TVs</button>
+    <p id="status">Status: Niet verbonden.</p>
 
     <script>
-        const correctAccessCode = "1234"; // Stel je toegangscode hier in
-        let device;
-        let characteristic;
+        let connected = false;
+        let device = null;
 
-        function checkAccessCode() {
-            const enteredCode = document.getElementById("accessCode").value;
-            if (enteredCode === correctAccessCode) {
-                document.getElementById("accessDiv").classList.add("hidden");
-                document.getElementById("app").classList.remove("hidden");
+        // Functie die de knop voor het verzenden van signalen aanstuurt
+        document.getElementById('power-toggle').addEventListener('click', async function() {
+            if (connected) {
+                console.log("Sending power signal to all TVs...");
+                broadcast_all();
             } else {
-                alert("Onjuiste toegangscode!");
-            }
-        }
-
-        // Bluetooth Connect Button
-        document.getElementById('connectButton').addEventListener('click', async () => {
-            try {
-                device = await navigator.bluetooth.requestDevice({
-                    acceptAllDevices: true,
-                    optionalServices: ['0000180a-0000-1000-8000-00805f9b34fb'] // UUID van de IR-blaster
-                });
-
-                const server = await device.gatt.connect();
-                const service = await server.getPrimaryService('0000180a-0000-1000-8000-00805f9b34fb');
-                characteristic = await service.getCharacteristic('00002a56-0000-1000-8000-00805f9b34fb');
-
-                alert('Verbonden met IR Blaster!');
-                document.getElementById('controlPanel').classList.remove('hidden');
-            } catch (error) {
-                alert('Kon geen verbinding maken: ' + error.message);
+                console.log("Bluetooth device not connected.");
             }
         });
 
-        // Stuur IR Signaal
-        async function sendIRSignal(brand) {
-            const irCodes = {
-                samsung: [0xE0, 0xE0, 0x40, 0xBF],
-                sony: [0xA9, 0x0],
-                lg: [0x20, 0xDF, 0x10, 0xEF],
-                panasonic: [0x40, 0x04],
-                sharp: [0x5E, 0xA1, 0x58, 0xA7]
-            };
-
-            const code = irCodes[brand];
-            if (!characteristic || !code) {
-                alert('Verbinden met apparaat mislukt of ongeldige code.');
-                return;
-            }
-
+        // Functie om een Bluetooth-apparaat te verbinden
+        async function connectBluetooth() {
             try {
-                const data = new Uint8Array(code);
-                await characteristic.writeValue(data);
-                alert(`IR-signaal verzonden voor ${brand}`);
+                console.log("Requesting Bluetooth device...");
+                device = await navigator.bluetooth.requestDevice({
+                    acceptAllDevices: true,
+                    optionalServices: ['battery_service']
+                });
+
+                device.addEventListener('gattserverconnected', onConnected);
+                device.addEventListener('gattserverdisconnected', onDisconnected);
+
+                document.getElementById('status').textContent = "Status: Verbonden met " + device.name;
+                connected = true;
             } catch (error) {
-                alert('Kon geen IR-signaal verzenden: ' + error.message);
+                console.log("Error connecting to device: ", error);
+                document.getElementById('status').textContent = "Status: Fout bij verbinden.";
             }
         }
+
+        // Functie wanneer de Bluetooth is verbonden
+        function onConnected(event) {
+            console.log("Connected to device");
+        }
+
+        // Functie wanneer de Bluetooth verbinding wordt verbroken
+        function onDisconnected(event) {
+            console.log("Disconnected from device");
+            connected = false;
+            document.getElementById('status').textContent = "Status: Verbinding verbroken.";
+        }
+
+        // Functie die het IR-signaal naar alle TV's verzendt
+        function broadcast_all() {
+            const tvBrands = {
+                samsung: { frequency: 38000, code: 'E0E040BF' },
+                sony: { frequency: 40000, code: 'A90' },
+                lg: { frequency: 38000, code: '20DF10EF' },
+                panasonic: { frequency: 36000, code: '4004' },
+                sharp: { frequency: 38000, code: '5EA158A7' },
+            };
+
+            for (let brand in tvBrands) {
+                let tv = tvBrands[brand];
+                send_ir_signal(tv.frequency, tv.code);
+            }
+        }
+
+        // Functie om een IR-signaal te verzenden via Bluetooth
+        function send_ir_signal(frequency, code) {
+            // Hier zou de Bluetooth-communicatiecode komen om het IR-signaal te verzenden
+            console.log(`Sending signal for TV brand: ${brand} with frequency ${frequency}Hz and code ${code}`);
+            // Voeg hier de Bluetooth-communicatie toe om het signaal daadwerkelijk te verzenden
+        }
+
+        // De pagina laadt automatisch en probeert verbinding te maken met een Bluetooth-apparaat
+        window.onload = () => {
+            if (navigator.bluetooth) {
+                connectBluetooth();
+            } else {
+                console.log("Bluetooth API not supported.");
+            }
+        };
     </script>
 </body>
 </html>
