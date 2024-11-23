@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IR Blaster Controller</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            color: #333;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            margin: 10px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #007BFF;
+            color: white;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>IR Blaster Controller</h1>
+    <div id="accessDiv">
+        <p>Voer de toegangscode in om verder te gaan:</p>
+        <input type="password" id="accessCode" placeholder="Toegangscode">
+        <button onclick="checkAccessCode()">Verzenden</button>
+    </div>
+
+    <div id="app" class="hidden">
+        <h2>Verbinden met je IR Blaster</h2>
+        <button id="connectButton">Verbinden</button>
+
+        <div id="controlPanel" class="hidden">
+            <h2>Stuur IR Signalen</h2>
+            <button onclick="sendIRSignal('samsung')">Samsung</button>
+            <button onclick="sendIRSignal('sony')">Sony</button>
+            <button onclick="sendIRSignal('lg')">LG</button>
+            <button onclick="sendIRSignal('panasonic')">Panasonic</button>
+            <button onclick="sendIRSignal('sharp')">Sharp</button>
+        </div>
+    </div>
+
+    <script>
+        const correctAccessCode = "1234"; // Stel je toegangscode hier in
+        let device;
+        let characteristic;
+
+        function checkAccessCode() {
+            const enteredCode = document.getElementById("accessCode").value;
+            if (enteredCode === correctAccessCode) {
+                document.getElementById("accessDiv").classList.add("hidden");
+                document.getElementById("app").classList.remove("hidden");
+            } else {
+                alert("Onjuiste toegangscode!");
+            }
+        }
+
+        // Bluetooth Connect Button
+        document.getElementById('connectButton').addEventListener('click', async () => {
+            try {
+                device = await navigator.bluetooth.requestDevice({
+                    acceptAllDevices: true,
+                    optionalServices: ['0000180a-0000-1000-8000-00805f9b34fb'] // UUID van de IR-blaster
+                });
+
+                const server = await device.gatt.connect();
+                const service = await server.getPrimaryService('0000180a-0000-1000-8000-00805f9b34fb');
+                characteristic = await service.getCharacteristic('00002a56-0000-1000-8000-00805f9b34fb');
+
+                alert('Verbonden met IR Blaster!');
+                document.getElementById('controlPanel').classList.remove('hidden');
+            } catch (error) {
+                alert('Kon geen verbinding maken: ' + error.message);
+            }
+        });
+
+        // Stuur IR Signaal
+        async function sendIRSignal(brand) {
+            const irCodes = {
+                samsung: [0xE0, 0xE0, 0x40, 0xBF],
+                sony: [0xA9, 0x0],
+                lg: [0x20, 0xDF, 0x10, 0xEF],
+                panasonic: [0x40, 0x04],
+                sharp: [0x5E, 0xA1, 0x58, 0xA7]
+            };
+
+            const code = irCodes[brand];
+            if (!characteristic || !code) {
+                alert('Verbinden met apparaat mislukt of ongeldige code.');
+                return;
+            }
+
+            try {
+                const data = new Uint8Array(code);
+                await characteristic.writeValue(data);
+                alert(`IR-signaal verzonden voor ${brand}`);
+            } catch (error) {
+                alert('Kon geen IR-signaal verzenden: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>
