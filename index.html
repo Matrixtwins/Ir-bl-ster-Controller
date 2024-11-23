@@ -14,7 +14,7 @@
         }
 
         header {
-            background-color: #28a745;
+            background-color: #28a745; /* Groene achtergrond voor header */
             color: white;
             text-align: center;
             padding: 10px;
@@ -22,10 +22,12 @@
 
         .banner {
             font-family: monospace;
-            font-size: 16px;
-            line-height: 1.4;
+            font-size: 14px; /* Kleinere lettergrootte */
+            color: #28a745; /* Groene kleur voor de banner */
+            line-height: 1.2;
             white-space: pre-wrap;
-            margin: 20px;
+            margin: 10px;
+            text-align: center;
         }
 
         .content {
@@ -82,44 +84,50 @@
     const status = document.getElementById('status');
     let bluetoothDevice = null;
 
-    // Function to connect to a Bluetooth device
+    // Functie om verbinding te maken met een Bluetooth-apparaat
     async function connectBluetooth() {
         try {
-            // Request Bluetooth device
+            if (!navigator.bluetooth) {
+                status.textContent = "Bluetooth wordt niet ondersteund door deze browser of apparaat.";
+                return;
+            }
+
+            // Vraag Bluetooth-apparaat aan
             bluetoothDevice = await navigator.bluetooth.requestDevice({
-                filters: [{ services: ['ir-blaster-service'] }] // Change this to match your IR device
+                acceptAllDevices: true, // Accepteer elk Bluetooth-apparaat
+                optionalServices: ['ir-blaster-service'] // Dit is een voorbeeld; vervang door de werkelijke service UUID
             });
 
-            status.textContent = `Connected to ${bluetoothDevice.name}`;
-            sendSignalBtn.disabled = false; // Enable the "Start Broadcasting" button
+            status.textContent = `Verbonden met ${bluetoothDevice.name}`;
+            sendSignalBtn.disabled = false; // Zet de "Start Broadcasting" knop aan
 
             bluetoothDevice.addEventListener('gattserverdisconnected', onDisconnected);
         } catch (error) {
-            status.textContent = `Connection failed: ${error}`;
+            status.textContent = `Verbinding mislukt: ${error}`;
         }
     }
 
-    // Handle device disconnection
+    // Functie voor het afhandelen van de ontkoppeling van het apparaat
     function onDisconnected() {
-        status.textContent = "Device disconnected.";
-        sendSignalBtn.disabled = true; // Disable the button
+        status.textContent = "Apparaat is ontkoppeld.";
+        sendSignalBtn.disabled = true; // Zet de knop uit
     }
 
-    // Function to send an IR signal
+    // Functie om een IR-signaal te verzenden
     async function sendIrSignal() {
         if (!bluetoothDevice) {
-            status.textContent = "No Bluetooth device connected.";
+            status.textContent = "Geen Bluetooth-apparaat verbonden.";
             return;
         }
 
         try {
-            // You can send a command to the IR device using Bluetooth GATT services here
-            // Simulate sending a signal for demonstration purposes
-            console.log("Sending IR signal...");
+            // Hier zou je een opdracht kunnen sturen naar de IR-blaster via Bluetooth GATT-services
+            // Voor nu simuleren we het verzenden van een signaal
+            console.log("IR-signaal wordt verzonden...");
 
-            status.textContent = "IR signal sent!";
+            status.textContent = "IR-signaal verzonden!";
         } catch (error) {
-            status.textContent = `Error sending signal: ${error}`;
+            status.textContent = `Fout bij verzenden signaal: ${error}`;
         }
     }
 
